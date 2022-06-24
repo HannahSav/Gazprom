@@ -10,8 +10,10 @@ with open("data.json") as data:
 #убираем ненужные объекты из json
 del articlesList[0::2]
 
-for article in articlesList:
-    print(article["title"])
+connection = DBlogic.connect()
+DBlogic.drop(connection)
+DBlogic.create_it(connection)
 
-DBlogic.create_it()
-#DBlogic.drop()
+for article in articlesList:
+    DBlogic.add_elem(connection=connection, create_timestamp=article["create_timestamp"], timestamp=article['timestamp'], language=article['language'], wiki=article['wiki'], category=article['category'], title=article['title'])
+    #print(article["title"])
