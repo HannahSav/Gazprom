@@ -1,8 +1,9 @@
 import json
 import DBlogic
+import config
 
 articlesList = []
-with open("data.json") as data:
+with open(config.filename) as data:
     for obj in data:
         articleObj = json.loads(obj)
         articlesList.append(articleObj)
