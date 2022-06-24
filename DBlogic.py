@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import psycopg2
 from config import host, user, password, db_name
 
@@ -21,16 +23,24 @@ def create_it(connection):
                 category TEXT,
                 num_of_titles INTEGER
                 );
+                
                 CREATE TABLE WIKI(
+                object_id SERIAL PRIMARY KEY,
                 create_timestamp TIMESTAMP,
-                TIME_STAMP TIMESTAMP,
-                lang VARCHAR[10],
+                timestamp TIMESTAMP,
+                language TEXT,
                 wiki TEXT,
-				category_id INTEGER, 
-                CONSTRAINT category_id FOREIGN KEY(category_id) REFERENCES CATEGORIES(category_id),
-                title VARCHAR PRIMARY KEY,
+                title TEXT,
                 auxiliary_text TEXT
-                );""")
+                );
+                
+                CREATE TABLE CONNECTING(
+                object_id INTEGER,
+                category_id INTEGER,
+                CONSTRAINT object_id FOREIGN KEY (object_id) references WIKI(object_id),
+                CONSTRAINT category_id FOREIGN KEY (category_id) references CATEGORIES(category_id)
+                );
+                """)
             connection.commit()
             print("[INFO] Created table")
     except Exception as e:
@@ -41,7 +51,9 @@ def create_it(connection):
 def drop(connection):
     try:
         with connection.cursor() as cur:
-            cur.execute("""DROP TABLE WIKI;
+            cur.execute("""
+            DROP TABLE CONNECTING;
+            DROP TABLE WIKI;
             DROP TABLE CATEGORIES;""")
         connection.commit()
         print("[INFO] deleted it")
@@ -52,17 +64,40 @@ def drop(connection):
 def add_elem(connection, create_timestamp, timestamp, language, wiki, category, title, auxiliary_text = 0):
     try:
         with connection.cursor() as cur:
+            # creating object
+
+            sql = """INSERT INTO WIKI (create_timestamp, timestamp) VALUES (?, ?) RETURNING object_id"""
+            #sql = """INSERT INTO WIKI (create_timestamp, timestamp, language, wiki, title, auxiliary_text) VALUES (%s, %s, %s, %s, %s, %s) RETURNING object_id"""
+            dt = datetime.now()
+            cur.execute(sql, (timestamp(datetime.timestamp(dt)), timestamp(datetime.timestamp(dt))))
+            #, category[0], category[0], category[0], category[0]))
+            #cur.execute(sql, (timestamp(create_timestamp), timestamp(timestamp), str(language), str(wiki), str(title), str(auxiliary_text)))
+            obj_id = cur.fetchone()[0]
+
+            print(obj_id)
+
             for cat in category:
-                cur.execute("""SELECT * FROM CATEGORIES WHERE category = %s""", (cat,))
+                sql = """SELECT * FROM CATEGORIES WHERE category = %s"""
+                cur.execute(sql, (cat,))
                 connection.commit()
-                our_category_string = cur.fetchall()
-                #print(str(cat), cat)
-                print("our:: ", our_category_string, "\n")
-                if our_category_string == []:
-                    sql = """INSERT INTO CATEGORIES (category, num_of_titles) VALUES (%s, 1)"""
-                    cur.execute(sql, (cat, ))
+                row = cur.fetchone()
+                cat_id = 0
+                if not row:
+
+                    #creating category
+
+                    sql = """INSERT INTO CATEGORIES (category, num_of_titles) VALUES (%s, %s) RETURNING category_id"""
+                    cur.execute(sql, (cat, int(1)))
+                    cat_id = cur.fetchone()[0]
                 else:
-                    cur.execute("""UPDATE categories SET num_of_titles = %d WHERE category_id = %d""", our_category_string[2]+1, our_category_string[0])
+
+                    #updating category
+
+                    cat_id = row[0]
+                    sql = """UPDATE categories SET num_of_titles = %s WHERE category_id = %s"""
+                    cur.execute(sql, (int(row[2])+1, int(row[0])))
+
+                #creating connection
     except Exception as e:
         print("[INFO] troubles with searching category", category)
         print(e)
