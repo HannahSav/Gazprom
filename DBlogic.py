@@ -66,15 +66,9 @@ def add_elem(connection, create_timestamp, timestamp, language, wiki, category, 
         with connection.cursor() as cur:
             # creating object
 
-            sql = """INSERT INTO WIKI (create_timestamp, timestamp) VALUES (?, ?) RETURNING object_id"""
-            #sql = """INSERT INTO WIKI (create_timestamp, timestamp, language, wiki, title, auxiliary_text) VALUES (%s, %s, %s, %s, %s, %s) RETURNING object_id"""
-            dt = datetime.now()
-            cur.execute(sql, (timestamp(datetime.timestamp(dt)), timestamp(datetime.timestamp(dt))))
-            #, category[0], category[0], category[0], category[0]))
-            #cur.execute(sql, (timestamp(create_timestamp), timestamp(timestamp), str(language), str(wiki), str(title), str(auxiliary_text)))
+            sql = """INSERT INTO WIKI (create_timestamp, timestamp, language, wiki, title, auxiliary_text) VALUES (%s, %s, %s, %s, %s, %s) RETURNING object_id"""
+            cur.execute(sql, (str(create_timestamp), str(timestamp), language, wiki, title, auxiliary_text))
             obj_id = cur.fetchone()[0]
-
-            print(obj_id)
 
             for cat in category:
                 sql = """SELECT * FROM CATEGORIES WHERE category = %s"""
@@ -98,6 +92,10 @@ def add_elem(connection, create_timestamp, timestamp, language, wiki, category, 
                     cur.execute(sql, (int(row[2])+1, int(row[0])))
 
                 #creating connection
+
+                sql = """INSERT INTO CONNECTING (category_id, object_id) VALUES (%s, %s)"""
+                cur.execute(sql, (cat_id, obj_id))
+
     except Exception as e:
         print("[INFO] troubles with searching category", category)
         print(e)
