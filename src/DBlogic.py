@@ -1,7 +1,7 @@
 from datetime import datetime
 
 import psycopg2
-from config import host, user, password, db_name
+from Resourses.config import host, user, password, db_name
 
 
 def connect():
@@ -61,12 +61,14 @@ def drop(connection):
         print("[ERROR] Couldn't delete tables")
         print(e)
 
-def add_elem(connection, create_timestamp, timestamp, language, wiki, category, title, auxiliary_text = 0):
+
+def add_elem(connection, create_timestamp, timestamp, language, wiki, category, title, auxiliary_text=0):
     try:
         with connection.cursor() as cur:
             # creating object
 
-            sql = """INSERT INTO WIKI (create_timestamp, timestamp, language, wiki, title, auxiliary_text) VALUES (%s, %s, %s, %s, %s, %s) RETURNING object_id"""
+            sql = """INSERT INTO WIKI (create_timestamp, timestamp, language, wiki, title, auxiliary_text) VALUES (
+            %s, %s, %s, %s, %s, %s) RETURNING object_id """
             cur.execute(sql, (str(create_timestamp), str(timestamp), language, wiki, title, auxiliary_text))
             obj_id = cur.fetchone()[0]
 
@@ -78,24 +80,36 @@ def add_elem(connection, create_timestamp, timestamp, language, wiki, category, 
                 cat_id = 0
                 if not row:
 
-                    #creating category
+                    # creating category
 
                     sql = """INSERT INTO CATEGORIES (category, num_of_titles) VALUES (%s, %s) RETURNING category_id"""
                     cur.execute(sql, (cat, int(1)))
                     cat_id = cur.fetchone()[0]
                 else:
 
-                    #updating category
+                    # updating category
 
                     cat_id = row[0]
                     sql = """UPDATE categories SET num_of_titles = %s WHERE category_id = %s"""
-                    cur.execute(sql, (int(row[2])+1, int(row[0])))
+                    cur.execute(sql, (int(row[2]) + 1, int(row[0])))
 
-                #creating connection
+                # creating connection
 
                 sql = """INSERT INTO CONNECTING (category_id, object_id) VALUES (%s, %s)"""
                 cur.execute(sql, (cat_id, obj_id))
 
     except Exception as e:
         print("[INFO] troubles with searching category", category)
+        print(e)
+
+
+def ask_by_title(connection, title):
+    try:
+        with connection.cursor() as cur:
+            sql = """SELECT * FROM WIKI WHERE title = %s"""
+            print(title)
+            cur.execute(sql, (title,))
+            print(cur.fetchall())
+    except Exception as e:
+        print("[ERROR] Troubles with sql ask title")
         print(e)
